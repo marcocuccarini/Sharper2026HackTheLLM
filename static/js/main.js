@@ -1,5 +1,8 @@
 let sessionId = null;
 let currentLevel = 1;
+let selectedStartLevel = 1;
+let gameComplete = false;
+let levelProgress = {};  // livelli superati, es. {"1": true, "2": false, "3": false}
 let sending = false;
 
 function showScreen(id) {
@@ -11,6 +14,7 @@ function goHome() {
     sessionId = null;
     document.getElementById('nickname').value = '';
     document.getElementById('startErr').textContent = '';
+    pickStartLevel(1);
     showScreen('screen-landing');
 }
 
@@ -18,6 +22,78 @@ function toggleToolkitInline() {
     let el = document.getElementById('toolkitInline');
     el.style.display = el.style.display === 'none' ? 'grid' : 'none';
 }
+
+// ---------- Scelta del livello di partenza (schermata iniziale) ----------
+function pickStartLevel(level) {
+    selectedStartLevel = level;
+    document.querySelectorAll('#levelPicker .lvl-option').forEach(btn => {
+        const on = Number(btn.dataset.level) === level;
+        btn.classList.toggle('selected', on);
+        btn.setAttribute('aria-checked', on ? 'true' : 'false');
+    });
+}
+
+document.querySelectorAll('#levelPicker .lvl-option').forEach(btn => {
+    btn.addEventListener('click', () => pickStartLevel(Number(btn.dataset.level)));
+});
+
+// ---------- Cambio livello durante la partita ----------
+function updateLevelTabs(progress) {
+    if (progress) levelProgress = progress;
+    document.querySelectorAll('#levelTabs .lvl-tab').forEach(btn => {
+        const lvl = Number(btn.dataset.level);
+        btn.classList.toggle('current', lvl === currentLevel);
+        if (progress) btn.classList.toggle('done', !!progress[String(lvl)]);
+    });
+}
+
+function setTabsDisabled(disabled) {
+    document.querySelectorAll('#levelTabs .lvl-tab').forEach(btn => { btn.disabled = disabled; });
+    document.getElementById('skipBtn').disabled = disabled;
+}
+
+// Salta il livello corrente: va al prossimo livello non ancora superato
+// (es. dal 3 torna all'1). Il livello saltato resta da fare per la classifica.
+function skipLevel() {
+    if (!sessionId || sending) return;
+    const order = [1, 2, 3].map(i => ((currentLevel - 1 + i) % 3) + 1);  // es. dal 2: 3, 1, 2
+    const next = order.find(l => l !== currentLevel && !levelProgress[String(l)]);
+    if (!next) {
+        appendMsg('system', 'È l\'ultimo livello che ti manca: non puoi saltarlo!');
+        return;
+    }
+    selectLevel(next);
+}
+
+function setInputDisabled(disabled) {
+    document.getElementById('userInput').disabled = disabled;
+    document.getElementById('sendBtn').disabled = disabled;
+}
+
+async function selectLevel(level) {
+    if (!sessionId || sending || level === currentLevel) return;
+    try {
+        const res = await fetch('/select_level', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ session_id: sessionId, level })
+        });
+        const json = await res.json();
+        if (!json.response) { appendMsg('system', '❌ ' + (json.message || 'Errore.')); return; }
+
+        loadLevel(json.level, json.progress);
+        document.getElementById('attemptCount').textContent = json.attempts_this_level;
+        if (json.solved) {
+            appendMsg('system', '✅ Hai già superato questo livello: scegline un altro.');
+            setInputDisabled(true);
+        }
+    } catch (e) {
+        appendMsg('system', '❌ Errore di connessione al server.');
+    }
+}
+
+document.querySelectorAll('#levelTabs .lvl-tab').forEach(btn => {
+    btn.addEventListener('click', () => selectLevel(Number(btn.dataset.level)));
+});
 
 async function startGame() {
     let name = document.getElementById('nickname').value.trim();
@@ -28,26 +104,29 @@ async function startGame() {
     try {
         const res = await fetch('/start', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ name })
+            body: JSON.stringify({ name, level: selectedStartLevel })
         });
         const json = await res.json();
         if (!json.response) { errEl.textContent = json.message || 'Errore.'; return; }
 
         sessionId = json.session_id;
-        loadLevel(json.level);
+        gameComplete = false;
+        loadLevel(json.level, json.progress);
         showScreen('screen-game');
     } catch (e) {
         errEl.textContent = 'Errore di connessione al server.';
     }
 }
 
-function loadLevel(level) {
+function loadLevel(level, progress) {
     currentLevel = level.number;
     document.getElementById('lvlTitle').textContent = level.title;
     document.getElementById('lvlMission').textContent = level.mission;
     document.getElementById('attemptCount').textContent = '0';
     document.getElementById('terminal').innerHTML = '';
     document.getElementById('flagBanner').classList.remove('show');
+    setInputDisabled(false);
+    updateLevelTabs(progress);
     appendMsg('system', `Sessione avviata su ProfBot. Obiettivo: ${level.mission}`);
 }
 
@@ -82,11 +161,13 @@ async function sendMessage() {
     appendMsg('user', text);
     input.value = '';
     sending = true;
-    document.getElementById('sendBtn').disabled = true;
+    setInputDisabled(true);
+    setTabsDisabled(true);
 
     const typing = appendMsg('bot', 'sto pensando');
     typing.classList.add('typing');
 
+    let solved = false;
     try {
         const res = await fetch('/message', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -100,8 +181,11 @@ async function sendMessage() {
         } else {
             appendMsg('bot', json.reply);
             document.getElementById('attemptCount').textContent = json.attempts_this_level;
+            updateLevelTabs(json.progress);
 
             if (json.solved) {
+                solved = true;
+                gameComplete = json.game_complete;
                 document.getElementById('badgeName').textContent = json.badge;
                 document.getElementById('flagBanner').classList.add('show');
                 document.getElementById('advanceBtn').textContent =
@@ -114,8 +198,9 @@ async function sendMessage() {
     }
 
     sending = false;
-    document.getElementById('sendBtn').disabled = false;
-    input.focus();
+    setTabsDisabled(false);
+    setInputDisabled(solved);  // livello superato: si passa a un altro
+    if (!solved) input.focus();
 }
 
 document.getElementById('userInput')?.addEventListener('keydown', (e) => {
@@ -123,7 +208,8 @@ document.getElementById('userInput')?.addEventListener('keydown', (e) => {
 });
 
 async function advance() {
-    if (currentLevel >= 3) {
+    if (gameComplete) {
+        gameComplete = false;
         showLeaderboard();
         return;
     }
@@ -134,7 +220,9 @@ async function advance() {
         });
         const json = await res.json();
         if (json.response) {
-            loadLevel(json.level);
+            loadLevel(json.level, json.progress);
+        } else {
+            appendMsg('system', json.message || 'Errore.');
         }
     } catch (e) {
         appendMsg('system', '❌ Errore di connessione al server.');

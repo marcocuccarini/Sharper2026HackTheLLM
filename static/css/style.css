@@ -131,7 +131,7 @@ header.topbar nav button:hover {
     font-family: var(--font-display);
 }
 
-.startbox button {
+.startbox .start-btn {
     margin-top: .9rem;
     width: 100%;
     background: var(--cyberred);
@@ -144,8 +144,59 @@ header.topbar nav button:hover {
     cursor: pointer;
 }
 
-.startbox button:hover {
+.startbox .start-btn:hover {
     background: #c8392b;
+}
+
+/* ---------- Scelta del livello (schermata iniziale) ---------- */
+.startbox .lvl-label {
+    margin-top: 1rem;
+}
+
+.level-picker {
+    display: grid;
+    gap: .45rem;
+}
+
+.lvl-option {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: .1rem;
+    text-align: left;
+    background: #fff;
+    border: 1.5px solid #ccd3e0;
+    border-radius: 10px;
+    padding: .55rem .8rem;
+    cursor: pointer;
+    font-family: var(--font-display);
+    color: #465063;
+}
+
+.lvl-option b {
+    color: var(--cyberblue);
+    font-size: .9rem;
+}
+
+.lvl-option span {
+    font-size: .8rem;
+}
+
+.lvl-option:hover {
+    border-color: var(--cyberblue-light);
+}
+
+.lvl-option.selected {
+    border-color: var(--cyberblue);
+    background: #eef2fb;
+    box-shadow: 0 0 0 2px rgba(26, 42, 108, .15);
+}
+
+.lb-note {
+    margin: .6rem 0 0;
+    font-size: .75rem;
+    color: #7a8496;
+    text-align: center;
 }
 
 .startbox .err {
@@ -229,7 +280,25 @@ header.topbar nav button:hover {
     justify-content: space-between;
     align-items: center;
     gap: 1rem;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
+    /* pulsanti e contatore restano sempre a destra */
+}
+
+/* Titolo + missione: occupano lo spazio libero e la frase va a capo */
+.mission-bar>div:first-child {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.mission-bar .mission-right {
+    flex: none;
+}
+
+/* Su schermi stretti (telefono) i pulsanti scendono sotto la missione */
+@media (max-width: 700px) {
+    .mission-bar {
+        flex-wrap: wrap;
+    }
 }
 
 .mission-bar .lvl-title {
@@ -263,6 +332,85 @@ header.topbar nav button:hover {
     text-transform: uppercase;
     letter-spacing: .05em;
     opacity: .8;
+}
+
+/* ---------- Cambio livello durante la partita ---------- */
+.mission-right {
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+}
+
+.level-tabs {
+    display: flex;
+    gap: .35rem;
+}
+
+.lvl-tab {
+    width: 2.3rem;
+    height: 2.3rem;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255, 255, 255, .45);
+    background: transparent;
+    color: #fff;
+    font-family: var(--font-mono);
+    font-weight: 700;
+    font-size: .95rem;
+    cursor: pointer;
+    position: relative;
+}
+
+.lvl-tab:hover:not(:disabled) {
+    background: rgba(255, 255, 255, .15);
+}
+
+.lvl-tab.current {
+    background: #fff;
+    color: var(--cyberblue);
+    border-color: #fff;
+}
+
+.lvl-tab.done::after {
+    content: "✓";
+    position: absolute;
+    right: -4px;
+    top: -4px;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background: var(--ok);
+    color: #fff;
+    font-size: .6rem;
+    line-height: 1rem;
+}
+
+.lvl-tab:disabled {
+    opacity: .5;
+    cursor: default;
+}
+
+/* Pulsante per saltare il livello corrente */
+.skip-btn {
+    height: 2.3rem;
+    padding: 0 .9rem;
+    border-radius: 999px;
+    border: 1.5px solid rgba(255, 255, 255, .45);
+    background: rgba(255, 255, 255, .1);
+    color: #fff;
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: .85rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.skip-btn:hover:not(:disabled) {
+    background: rgba(255, 255, 255, .22);
+}
+
+.skip-btn:disabled {
+    opacity: .5;
+    cursor: default;
 }
 
 .terminal {

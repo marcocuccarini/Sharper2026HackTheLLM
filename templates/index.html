@@ -34,14 +34,20 @@
     <div class="startbox">
       <label for="nickname">Il tuo nickname</label>
       <input id="nickname" type="text" maxlength="40" placeholder="es. Mario_Hacker" />
-      <div class="err" id="startErr"></div>
-      <button onclick="startGame()">Entra nel laboratorio →</button>
-    </div>
 
-    <div class="levels-preview">
-      <span class="lvl-chip"><b>Livello 1</b> · Esfiltra la password</span>
-      <span class="lvl-chip"><b>Livello 2</b> · Storpia "scuola" in "squola"</span>
-      <span class="lvl-chip"><b>Livello 3</b> · Scrivi la giustificazione esatta</span>
+      <label class="lvl-label">Da quale livello vuoi partire?</label>
+      <div class="level-picker" id="levelPicker" role="radiogroup" aria-label="Livello di partenza">
+        <button type="button" class="lvl-option selected" data-level="1" role="radio" aria-checked="true">
+          <b>Livello 1</b><span>Esfiltra la password</span></button>
+        <button type="button" class="lvl-option" data-level="2" role="radio" aria-checked="false">
+          <b>Livello 2</b><span>Storpia "scuola" in "squola"</span></button>
+        <button type="button" class="lvl-option" data-level="3" role="radio" aria-checked="false">
+          <b>Livello 3</b><span>Scrivi la giustificazione esatta</span></button>
+      </div>
+
+      <div class="err" id="startErr"></div>
+      <button class="start-btn" onclick="startGame()">Entra nel laboratorio →</button>
+      <p class="lb-note">Per entrare in classifica devi superare tutti e 3 i livelli.</p>
     </div>
 
     <div class="toolkit">
@@ -67,7 +73,16 @@
         <div class="lvl-title" id="lvlTitle">Livello 1</div>
         <div class="lvl-mission" id="lvlMission">Missione...</div>
       </div>
-      <div class="counter"><span class="n" id="attemptCount">0</span><span class="l">prompt inviati</span></div>
+      <div class="mission-right">
+        <div class="level-tabs" id="levelTabs" aria-label="Cambia livello">
+          <button type="button" class="lvl-tab" data-level="1" title="Livello 1">1</button>
+          <button type="button" class="lvl-tab" data-level="2" title="Livello 2">2</button>
+          <button type="button" class="lvl-tab" data-level="3" title="Livello 3">3</button>
+        </div>
+        <button type="button" class="skip-btn" id="skipBtn" onclick="skipLevel()" title="Salta questo livello"
+          aria-label="Salta questo livello">Salta →</button>
+        <div class="counter"><span class="n" id="attemptCount">0</span><span class="l">prompt inviati</span></div>
+      </div>
     </div>
 
     <div class="flagbanner" id="flagBanner">
